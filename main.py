@@ -16,7 +16,7 @@ def main():
     canvas.focus_set()
 
     grid, snake, food, directions_queue = init_game_objects()
-    canvas.bind('<Key>', lambda event: key_handler(event, snake, directions_queue))
+    canvas.bind('<Key>', lambda event: key_handler(event, snake, directions_queue, food, grid))
     canvas.pack(fill=tk.BOTH, expand=1)
     tick(grid, snake, food, directions_queue)
     root.mainloop()
@@ -46,7 +46,7 @@ def tick(grid, snake, food, directions_queue):
     root.after(TIME_REFRESH, tick, grid, snake, food, directions_queue)
 
 
-def key_handler(event, snake, directions_queue):
+def key_handler(event, snake, directions_queue, food, grid):
     """If corresponding key have been pressed and direction is not opposite to the key"""
     if event.keysym == 'a' or event.keysym == 'Left' and snake.direction != 'right':
         directions_queue.append('left')
@@ -57,31 +57,39 @@ def key_handler(event, snake, directions_queue):
     elif event.keysym == 'w' or event.keysym == 'Up' and snake.direction != 'down':
         directions_queue.append('up')
     elif event.keysym == 'space':
-        pass
+        food.delete(grid)
+        snake.delete(grid)
+        grid.delete(canvas)
+        grid, snake, food, directions_queue = init_game_objects()
+        canvas.bind('<Key>', lambda event: key_handler(event, snake, directions_queue, food, grid))
+        canvas.pack(fill=tk.BOTH, expand=1)
+        tick(grid, snake, food, directions_queue)
+
 
 
 def check_collision(snake, grid):
     """Gets current head position and checks if next square is a part of body or in range of canvas """
-    current_head_pos = [key for key, value in grid.mash.items() if value == snake.body[0]][0]
-    current_head_pos_x = current_head_pos[0]
-    current_head_pos_y = current_head_pos[1]
+    if snake.alive:
+        current_head_pos = [key for key, value in grid.mash.items() if value == snake.body[0]][0]
+        current_head_pos_x = current_head_pos[0]
+        current_head_pos_y = current_head_pos[1]
 
-    if snake.direction == 'left':
-        if current_head_pos_x - 1 < 0 or \
-                is_square_in_snake(snake, grid, current_head_pos_x - 1, current_head_pos_y):
-            game_over(snake, grid)
-    elif snake.direction == 'right':
-        if current_head_pos_x + 1 > GRID_WIDTH - 1 or \
-                is_square_in_snake(snake, grid, current_head_pos_x + 1, current_head_pos_y):
-            game_over(snake, grid)
-    elif snake.direction == 'up':
-        if current_head_pos_y - 1 < 0 or \
-                is_square_in_snake(snake, grid, current_head_pos_x, current_head_pos_y - 1):
-            game_over(snake, grid)
-    elif snake.direction == 'down':
-        if current_head_pos_y + 1 > GRID_HEIGHT - 1 or \
-                is_square_in_snake(snake, grid, current_head_pos_x, current_head_pos_y + 1):
-            game_over(snake, grid)
+        if snake.direction == 'left':
+            if current_head_pos_x - 1 < 0 or \
+                    is_square_in_snake(snake, grid, current_head_pos_x - 1, current_head_pos_y):
+                game_over(snake, grid)
+        elif snake.direction == 'right':
+            if current_head_pos_x + 1 > GRID_WIDTH - 1 or \
+                    is_square_in_snake(snake, grid, current_head_pos_x + 1, current_head_pos_y):
+                game_over(snake, grid)
+        elif snake.direction == 'up':
+            if current_head_pos_y - 1 < 0 or \
+                    is_square_in_snake(snake, grid, current_head_pos_x, current_head_pos_y - 1):
+                game_over(snake, grid)
+        elif snake.direction == 'down':
+            if current_head_pos_y + 1 > GRID_HEIGHT - 1 or \
+                    is_square_in_snake(snake, grid, current_head_pos_x, current_head_pos_y + 1):
+                game_over(snake, grid)
 
 
 def is_square_in_snake(snake, grid, x, y):
@@ -109,6 +117,8 @@ class Grid:
                                                             2 + bar_width * (i + 1), 2 + bar_height * (j + 1))
                 canvas.itemconfig(self.mash[(i, j)], fill=self.color)
 
+    def delete(self, canvas):
+        canvas.delete('all')
 
 class Snake:
     def __init__(self, grid):
@@ -132,6 +142,7 @@ class Snake:
         if self.alive:
             if directions_queue:
                 self.direction = directions_queue.pop()
+
             def _shift_the_body(self, grid, x, dx, y, dy):
                 """Shifts snake's body by poping out tale and appending canvas cell in  the direction dx dy"""
                 self.body.appendleft(grid.mash[x + dx, y + dy])
@@ -190,6 +201,14 @@ class Snake:
         for i in range(1, self.length):  # coloring body not including the head
             canvas.itemconfig(self.body[i], fill=self.dead_color)
 
+    def delete(self, grid):
+        self.alive = False
+        canvas.itemconfig(self.last_square_not_in_the_body, fill=grid.color)  # erasing last square
+        canvas.itemconfig(self.body[0], fill=grid.color)  # coloring head
+        for i in range(1, self.length):  # coloring body not including the head
+            canvas.itemconfig(self.body[i], fill=grid.color)
+        self.body = deque()
+
 
 class Food:
     def __init__(self, snake, grid):
@@ -210,6 +229,11 @@ class Food:
     def die(self):
         self.alive = False
         self.color = GRID_COLOR
+
+    def delete(self, grid):
+        self.alive = False
+        self.color = grid.color
+        canvas.itemconfig(grid.mash[(self.x, self.y)], fill=self.color)
 
 
 if __name__ == '__main__':
