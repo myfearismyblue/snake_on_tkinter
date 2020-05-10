@@ -143,7 +143,7 @@ class Snake:
             if directions_queue:
                 self.direction = directions_queue.pop()
 
-            def _shift_the_body(self, grid, x, dx, y, dy):
+            def _shift_the_body(x, dx, y, dy):
                 """Shifts snake's body by poping out tale and appending canvas cell in  the direction dx dy"""
                 self.body.appendleft(grid.mash[x + dx, y + dy])
                 self.head = self.body[0]
@@ -154,13 +154,13 @@ class Snake:
             current_head_pos_y = current_head_pos[1]
 
             if self.direction == 'left':
-                _shift_the_body(self, grid, current_head_pos_x, -1, current_head_pos_y, 0)
+                _shift_the_body(current_head_pos_x, -1, current_head_pos_y, 0)
             elif self.direction == 'right':
-                _shift_the_body(self, grid, current_head_pos_x, +1, current_head_pos_y, 0)
+                _shift_the_body(current_head_pos_x, +1, current_head_pos_y, 0)
             elif self.direction == 'up':
-                _shift_the_body(self, grid, current_head_pos_x, 0, current_head_pos_y, -1)
+                _shift_the_body(current_head_pos_x, 0, current_head_pos_y, -1)
             elif self.direction == 'down':
-                _shift_the_body(self, grid, current_head_pos_x, 0, current_head_pos_y, +1)
+                _shift_the_body(current_head_pos_x, 0, current_head_pos_y, +1)
 
     def eat(self, grid, food):
         if self.alive:
